@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Java
@@ -20,28 +20,28 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android platform and build tools
+      - name: Install Android SDK packages
         run: |
-          yes | sdkmanager --licenses || true
-          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0"
 
-      - name: Make Gradle executable
-        run: chmod +x ./gradlew
-
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug --stacktrace
-
-      - name: Check APK
+      - name: Build DreamSave
+        working-directory: DreamSave-v2.0-project/DreamSave
         run: |
-          echo "APK files:"
-          find app/build/outputs -type f -name "*.apk"
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --stacktrace
 
-      - name: Upload APK
+      - name: Find APK
+        run: |
+          echo "Looking for APK..."
+          find . -type f -name "*.apk"
+
+      - name: Upload DreamSave APK
         uses: actions/upload-artifact@v4
         with:
           name: DreamSave-v2.0-APK
-          path: app/build/outputs/apk/**/*.apk
+          path: DreamSave-v2.0-project/DreamSave/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
