@@ -20,7 +20,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Install Android SDK packages
+      - name: Install Android SDK
         run: |
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
@@ -28,20 +28,42 @@ jobs:
             "platforms;android-35" \
             "build-tools;35.0.0"
 
-      - name: Build DreamSave
-        working-directory: DreamSave-v2.0-project/DreamSave
+      - name: Find Gradle project
         run: |
+          echo "Searching for gradlew..."
+          find . -type f -name "gradlew" -print
+
+      - name: Build APK
+        run: |
+          GRADLEW=$(find . -type f -name "gradlew" -print -quit)
+
+          if [ -z "$GRADLEW" ]; then
+            echo "ERROR: gradlew was not found!"
+            echo "Project files:"
+            find . -maxdepth 4 -type f | head -200
+            exit 1
+          fi
+
+          echo "Found Gradle wrapper at: $GRADLEW"
+
+          PROJECT_DIR=$(dirname "$GRADLEW")
+
+          echo "Project directory: $PROJECT_DIR"
+
+          cd "$PROJECT_DIR"
+
           chmod +x ./gradlew
+
           ./gradlew assembleDebug --stacktrace
 
       - name: Find APK
         run: |
-          echo "Looking for APK..."
-          find . -type f -name "*.apk"
+          echo "Searching for APK..."
+          find . -type f -name "*.apk" -print
 
-      - name: Upload DreamSave APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: DreamSave-v2.0-APK
-          path: DreamSave-v2.0-project/DreamSave/app/build/outputs/apk/debug/*.apk
+          path: "**/app/build/outputs/apk/debug/*.apk"
           if-no-files-found: error
