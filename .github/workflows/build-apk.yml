@@ -20,50 +20,39 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Install Android SDK
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install Android SDK packages
         run: |
-          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
-            "platform-tools" \
-            "platforms;android-35" \
-            "build-tools;35.0.0"
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Find Gradle project
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Check DreamSave project
+        working-directory: DreamSave-v2.0-project/DreamSave
         run: |
-          echo "Searching for gradlew..."
-          find . -type f -name "gradlew" -print
+          echo "Project contents:"
+          ls -la
+          echo "Checking Gradle files..."
+          find . -maxdepth 2 -type f | sort
 
-      - name: Build APK
+      - name: Build DreamSave APK
+        working-directory: DreamSave-v2.0-project/DreamSave
         run: |
-          GRADLEW=$(find . -type f -name "gradlew" -print -quit)
-
-          if [ -z "$GRADLEW" ]; then
-            echo "ERROR: gradlew was not found!"
-            echo "Project files:"
-            find . -maxdepth 4 -type f | head -200
-            exit 1
-          fi
-
-          echo "Found Gradle wrapper at: $GRADLEW"
-
-          PROJECT_DIR=$(dirname "$GRADLEW")
-
-          echo "Project directory: $PROJECT_DIR"
-
-          cd "$PROJECT_DIR"
-
-          chmod +x ./gradlew
-
-          ./gradlew assembleDebug --stacktrace
+          gradle assembleDebug --stacktrace
 
       - name: Find APK
         run: |
-          echo "Searching for APK..."
+          echo "APK files found:"
           find . -type f -name "*.apk" -print
 
-      - name: Upload APK
+      - name: Upload DreamSave APK
         uses: actions/upload-artifact@v4
         with:
           name: DreamSave-v2.0-APK
-          path: "**/app/build/outputs/apk/debug/*.apk"
+          path: DreamSave-v2.0-project/DreamSave/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
